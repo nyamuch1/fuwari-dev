@@ -15,6 +15,9 @@ const currentYear = new Date().getFullYear();
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href={url('sitemap-index.xml')}>Sitemap</a><br>
         Powered by
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://astro.build">Astro</a> &
-        <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a>
+        <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a>. /
+        <!--运行时间 -->
+        <script type="text/javascript">function runtime(){const t=new Date("12/25/2024 11:11:11"),n=new Date,s=n-t,e=Math.floor(s/1e3),o=Math.floor(e/86400),i=Math.floor(e%86400/3600),a=Math.floor(e%3600/60),r=e%60;document.getElementById("runningtime").innerHTML=`${o}天${i}小时${a}分${r}秒`}setInterval(runtime,1e3)</script>
+        ⭐本站已运行: <span id="runningtime" class="transition link text-[var(--primary)] font-medium"></span>
     </div>
 </div>
