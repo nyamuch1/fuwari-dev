@@ -1,5 +1,6 @@
 import type {
 	LicenseConfig,
+	Links,
 	NavBarConfig,
 	ProfileConfig,
 	SiteConfig,
@@ -43,6 +44,7 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.Home,
 		LinkPreset.Archive,
 		LinkPreset.About,
+		LinkPreset.Links,
 		{
 			name: "GitHub",
 			url: "https://github.com/saicaca/fuwari", // Internal links should not include the base path, as it is automatically added
@@ -75,6 +77,23 @@ export const profileConfig: ProfileConfig = {
 		},
 	],
 };
+
+export const friendsLinks:Array<Links> = [
+  {
+    title: 'Astro',
+    imgurl: 'https://docs.astro.build/favicon.ico',
+    desc: 'Astro',
+    siteurl: 'https://astro.build/',
+    tags: ['框架'],
+  },
+  {
+    title: 'Misskey',
+    imgurl: 'https://mk.nyamuchi.com/favicon.ico',
+    desc: 'Twitter like',
+    siteurl: 'https://mk.nyamuchi.com/about',
+    tags: [''],
+  }
+]
 
 export const licenseConfig: LicenseConfig = {
 	enable: true,

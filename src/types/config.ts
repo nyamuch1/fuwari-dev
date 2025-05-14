@@ -38,6 +38,15 @@ export enum LinkPreset {
 	Home = 0,
 	Archive = 1,
 	About = 2,
+  	Links = 3,
+}
+
+export type Links = {
+  title: string,
+  imgurl: string,
+  desc: string,
+  siteurl: string,
+  tags: Array<string>,
 }
 
 export type NavBarLink = {
