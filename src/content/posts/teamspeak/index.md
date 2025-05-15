@@ -7,149 +7,144 @@ tags: ["Teamspeak", "Docker", "Linux"]
 category: '指南'
 draft: false
 ---
+---
 
-## Linux系统安装教程
+# TeamSpeak 服务器部署指南
 
-相关链接
+## 基础安装
 
-> [安装docker](/note/#250120--linux-部署-docker)
-
-:::tip
-关于带宽占用。最高音质占用11.87KB/s
-
-1MB 带宽理论可以供( 1024**Kb** / 8**b** ) / 11.87**KB** = **10.78**人
-
-![01](./image/01.png)
-:::
-
-### 使用docker部署
-
-默认端口
-
-| 端口      | 功能       |
-| ------   | --------   |
-| 9987/UDP | 语言端口    |
-| 30033    | 文件端口    |
-| 10011    | 管理员端口  |
-
+### Linux 系统
+#### Docker 快速部署
 ```bash
-docker run -d -e TS3SERVER_LICENSE=accept --net=host --name=ts1 teamspeak
+# 1. 启动容器（自动下载镜像）
+docker run -d \
+  -e TS3SERVER_LICENSE=accept \
+  -p 9987:9987/udp \
+  -p 30033:30033 \
+  -p 10011:10011 \
+  --name=ts teamspeak
+
+# 2. 查看初始化日志（获取管理员凭证）
+docker logs ts | grep -E "API Key|Admin Token"
 ```
+⚠️ **重要提示**  
+日志中的 `ServerAdmin` 账号密码、`API Key` 和 `Admin Token` 请永久保存
 
-:::tip
-命令解释 \
-`-d` 后台运行容器 \
-`-e TS3SERVER_LICENSE=accept`同意许可 \
-`--net=host --name=ts1` 使用物理机网络，命名容器
+#### 手动安装
+本文暂不涵盖手动安装流程，推荐使用 Docker 方案
 
-需要放行`9987/udp` `30033/tcp` `10011/tcp` 端口
-:::
+---
 
+### Windows 系统
+#### 原生程序安装
+1. 从官网下载 `.exe` 安装包
+2. 解压后双击安装程序
+3. 首次启动时保存生成的凭证文件
 
+🔧 **网络配置要求**  
+- 有公网 IP：需在路由器配置 UDP 端口转发（9987/udp）
+- 无公网 IP：推荐使用樱花穿透等工具进行 UDP 转发
 
-#### 配置变量，修改端口配置
+#### WSL+Docker 方案
+操作步骤与 Linux 的 Docker 安装方式完全一致
 
-修改语言端口 [ 服务器带宽足够即可**多开** ]
+---
 
-```bash
-docker run -e TS3SERVER_LICENSE=accept \
--p 9988:9987/udp \
---name ts-9988 teamspeak
+## 进阶配置
 
-docker run -e TS3SERVER_LICENSE=accept \
--p 9989:9987/udp \
---name ts-9989 teamspeak
-```
-
-:::tip
-命令解释\
-使用`-p`将容器端口转发到物理机实现修改端口 \
-不转发`30033文件端口`和`10011管理员端口` \
-无法上传文件和管理服务器 \
-使用`--name`指定容器名称
-:::
-
-
-文件端口-默认开放。可不开防火墙或不转发端口以减少文件上传下载流量占用
-
-文件传输**IP地址**和**PORT端口**绑定使用，IP全部ipv4地址即可
-
-```bash
-docker run -e TS3SERVER_LICENSE=accept \
--e TS3SERVER_FILETRANSFER_PORT=50033 \
--e TS3SERVER_FILETRANSFER_IP=0.0.0.0 \
--p 9990:9987/udp -p 50033:50033 \
---name ts-9990 teamspeak
-```
-
-:::tip
-命令解释\
-使用`-e TS3SERVER_FILETRANSFER_PORT=50033`修改文件端口 \
-使用`-e TS3SERVER_FILETRANSFER_IP=50033`修改文件IP \
-不转发`10011管理员端口` \
-无法管理服务器 \
-使用`--name`指定容器名称
-:::
-
-### 使用docker compose进阶配置
-
-创建文件夹后再往里创建文件docker-compose.yml
-
-```bash
-cd
-mkdir teamspeak && touch teamspeak/docker-compose.yml
-cd teamspeak
-```
-
-配置数据库并将数据挂载到本地
-
+### Linux 定制化部署
+创建 `docker-compose.yml` 文件：
 ```yaml
 services:
-  teamspeak: 
-    image: teamspeak
-    container_name: ts3server
-    restart: always
-    # 默认转发
+  teamspeak:
+    image: teamspeak:latest
+    container_name: ts3
+    restart: unless-stopped
     ports:
-     - 9987:9987/udp
-     - 10011:10011
-     - 30033:30033
-    environment: 
-    # 使用其他数据库
-      TS3SERVER_DB_PLUGIN: ts3db_mariadb
-      TS3SERVER_DB_SQLCREATEPATH: create_mariadb
-      TS3SERVER_DB_HOST: db
-      TS3SERVER_DB_USER: root
-      # 设置数据库密码
-      TS3SERVER_DB_PASSWORD: example
-      TS3SERVER_DB_NAME: teamspeak
-      TS3SERVER_DB_WAITUNTILREADY: 30
+      - "9987:9987/udp"
+      # - "30333:30333"  # 文件传输端口 不推荐开放 虽然无法上传文件，但可以有效防止跑流量。不妨碍语音
+      - "10011:10011"  # ServerQuery 端口
+    environment:
+      TS3SERVER_SERVERADMIN_PASSWORD: "Pa$$w0rd"  # 强密码建议包含大小写/数字/符号
       TS3SERVER_LICENSE: accept
-    volumes: 
-     - ./data/server:/var/ts3server
-  db:
-    image: mariadb
-    container_name: ts3db
-    restart: always
-    environment: 
-    # 设置数据库密码
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: teamspeak
-    volumes: 
-     - ./data/db/:/var/lib/mysql
+      # 自定义文件传输端口示例：
+      # TS3SERVER_FILETRANSFER_IP: 0.0.0.0
+      # TS3SERVER_FILETRANSFER_PORT: 30333
+    volumes:
+      - ./ts_data:/var/ts3server
 ```
 
-ts3db.ini数据库自定义配置
+启动服务：`docker-compose up -d`
 
-```ini
-[config]
-host='${TS3SERVER_DB_HOST}'
-port='${TS3SERVER_DB_PORT:-3306}'
-username='${TS3SERVER_DB_USER}'
-password='${TS3SERVER_DB_PASSWORD}'
-database='${TS3SERVER_DB_NAME}'
-socket=
-wait_until_ready='${TS3SERVER_DB_WAITUNTILREADY:-30}
+---
+
+### Windows 高级配置
+#### 修改服务端口
+1. 使用 Telnet 连接管理接口：
+```bat
+telnet 127.0.0.1 10011
+login serveradmin 你的管理员密码
+use sid=1
+serveredit virtualserver_port=新端口号
+quit
 ```
+2. 重启 TeamSpeak 服务生效
+
+#### Docker 方案
+配置方法与 Linux 的 docker-compose 方案相同
+
+---
+
+## 客户端配置
+
+### TeamSpeak3 客户端
+- 官方安装包：  
+  [3.6.2 Windows 64位版](https://files.teamspeak-services.com/releases/client/3.6.2/TeamSpeak3-Client-win64-3.6.2.exe)
+- 中文汉化包：  
+  [最新汉化文件](https://github.com/VigorousPro/TS3-Translation_zh-CN/releases/download/snapshot/Chinese_Translation_zh-CN.ts3_translation)
+
+📌 汉化方法：双击运行
+
+❗ **身份文件备份**  
+身份文件丢失将导致无法恢复管理员权限，如使用匿名登录，优先导出备份
+
+---
+
+### TeamSpeak6 客户端 (Beta)
+- 测试版安装包：  
+  [6.0 Beta 版本](https://files.teamspeak-services.com/pre_releases/client/6.0.0-beta2/teamspeak-client.msi)
+- 重要特性：
+  - 内置中文界面（设置中切换）
+  - 匿名登录功能
+  - 身份凭证自动保存于 `%AppData%\Teamspeak` 
+
+❗ **身份文件备份**  
+身份文件丢失将导致无法恢复管理员权限，如使用匿名登录，请定期备份
+
+---
 
 更多配置可以查看[docker](https://hub.docker.com/_/teamspeak)  [github](https://github.com/TeamSpeak-Systems/teamspeak-linux-docker-images/blob/master/alpine/entrypoint.sh)
+
+---
+
+## Docker 环境准备
+### Ubuntu 系统安装
+```bash
+# 配置阿里云镜像源
+curl -fsSL http://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] http://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 安装组件
+sudo apt update && sudo apt install -y docker-ce
+
+# 配置用户组（需重新登录生效）
+sudo usermod -aG docker $USER
+
+# 配置镜像加速
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": ["https://镜像编码.mirror.aliyuncs.com"]
+}
+EOF
+systemctl restart docker
+```
